@@ -1,0 +1,13 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+
+.idea/
+
+
+virtualenv/
+.venv/
+env/
+venv/
+
+*.py[cod]
+Lo-runner/
