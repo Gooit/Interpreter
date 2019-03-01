@@ -2,6 +2,7 @@
 import os
 import shlex
 import subprocess
+import sys
 import threading
 import time
 
@@ -58,6 +59,7 @@ class Interpreter(object):
         return False
 
     def __call__(self, *args, **kwargs):
+        self.low_level()
         kwargs = self._initial(**kwargs)
         code = kwargs.pop('code')
         result = {}
@@ -75,6 +77,20 @@ class Interpreter(object):
         result['msg'] = value
         result['data'] = data
         return result
+
+    def low_level(self):
+        try:
+            os.setuid(int(os.popen("id -u %s" % "nobody").read()))
+        except:
+            pass
+
+    try:
+        # 降低程序运行权限，防止恶意代码
+        os.setuid(int(os.popen("id -u %s" % "nobody").read()))
+    except:
+        # logging.error("please run this program as root!")
+        print("please run this program as root!")
+        sys.exit(-1)
 
     def _single_run_rule(self, input_file_index, path,
                          solution_id, problem_id, time_limited, mem_limited):
@@ -102,7 +118,7 @@ class Interpreter(object):
     def _check_dangerous_code(self, code):
         return True
 
-    def _judge(self, user_asnwer, output_file_index, problem_id, **kwargs):
+    def _judge(self, user_answer, output_file_index, problem_id, **kwargs):
 
         path = os.path.join(self.cases_root_path, str(problem_id), output_file_index)
         with(path, 'w') as f:
@@ -110,11 +126,11 @@ class Interpreter(object):
                 '\r',
                 '').rstrip(
             )  # 删除\r,删除行末的空格和换行
-        if out_case == user_asnwer:  # 完全相同:AC
+        if out_case == user_answer:  # 完全相同:AC
             return "Accepted"
-        if out_case.split() == user_asnwer.split():  # 除去空格,tab,换行相同:PE
+        if out_case.split() == user_answer.split():  # 除去空格,tab,换行相同:PE
             return "Presentation Error"
-        if out_case in user_asnwer:  # 输出多了
+        if out_case in user_answer:  # 输出多了
             return "Output limit"
         return "Wrong Answer"  # 其他WA
 
@@ -127,6 +143,10 @@ class CPlusPlusInterpreter(Interpreter):
 
 
 class PythonInterpreter(Interpreter):
+    def __init__(self):
+        super().__init__()
+        self.compile_command = "python3 -m py_compile main.py"
+
     def _initial(self, *args, **kwargs):
         kwargs['time_limited'] *= 2
         kwargs['memory_limited'] *= 2
@@ -180,6 +200,7 @@ class PythonInterpreter(Interpreter):
                 'timelimit': time_limited,  # in MS
                 'memorylimit': mem_limited,  # in KB
             }
+            self.low_level()
             result = lorun.run(cfg)
         except:
             return False, "System Error", None
