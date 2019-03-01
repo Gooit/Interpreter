@@ -1,4 +1,3 @@
-# coding utf8
 import os
 import shlex
 import subprocess
@@ -50,12 +49,12 @@ class Interpreter(object):
     def _compile(self):
         p = subprocess.Popen(self.compile_command, shell=True, cwd=self.work_dir, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-        out, err = p.communicate()  # »ñÈ¡±àÒë´íÎóÐÅÏ¢
-        if p.returncode == 0:  # ·µ»ØÖµÎª0,±àÒë³É¹¦
+        out, err = p.communicate()  
+        if p.returncode == 0: 
             return True
 
         # dblock.acquire()
-        # update_compile_info(solution_id, err + out)  # ±àÒëÊ§°Ü,¸üÐÂÌâÄ¿µÄ±àÒë´íÎóÐÅÏ¢
+        # update_compile_info(solution_id, err + out) # Â±Ã Ã’Ã«ÃŠÂ§Â°Ãœ,Â¸Ã¼ÃÃ‚ÃŒÃ¢Ã„Â¿ÂµÃ„Â±Ã Ã’Ã«Â´Ã­ÃŽÃ³ÃÃ…ÃÂ¢
         # dblock.release()
         return False
 
@@ -84,14 +83,6 @@ class Interpreter(object):
             os.setuid(int(os.popen("id -u %s" % "nobody").read()))
         except:
             pass
-
-    try:
-        # ½µµÍ³ÌÐòÔËÐÐÈ¨ÏÞ£¬·ÀÖ¹¶ñÒâ´úÂë
-        os.setuid(int(os.popen("id -u %s" % "nobody").read()))
-    except:
-        # logging.error("please run this program as root!")
-        print("please run this program as root!")
-        sys.exit(-1)
 
     def _single_run_rule(self, input_file_index, path,
                          solution_id, problem_id, time_limited, mem_limited):
@@ -123,16 +114,16 @@ class Interpreter(object):
 
         out_cases_path = os.path.join(self.cases_root_path, str(problem_id), output_file_index)
         with open(out_cases_path, 'r') as f:
-            out_case = f.read().replace('\r','').rstrip()  # É¾³ý\r,É¾³ýÐÐÄ©µÄ¿Õ¸ñºÍ»»ÐÐ
+            out_case = f.read().replace('\r','').rstrip()  # Ã‰Â¾Â³Ã½\r,Ã‰Â¾Â³Ã½ÃÃÃ„Â©ÂµÃ„Â¿Ã•Â¸Ã±ÂºÃÂ»Â»ÃÃ
         with open(self.user_out_path, 'r') as f:
             user_out = f.read().replace('\r', "").strip()
-        if out_case == user_out:  # ÍêÈ«ÏàÍ¬:AC
+        if out_case == user_out:  # ÃÃªÃˆÂ«ÃÃ ÃÂ¬:AC
             return "Accepted"
-        if out_case.split() == user_out.split():  # ³ýÈ¥¿Õ¸ñ,tab,»»ÐÐÏàÍ¬:PE
+        if out_case.split() == user_out.split():  # Â³Ã½ÃˆÂ¥Â¿Ã•Â¸Ã±,tab,Â»Â»ÃÃÃÃ ÃÂ¬:PE
             return "Presentation Error"
-        if out_case in user_out:  # Êä³ö¶àÁË
+        if out_case in user_out:  # ÃŠÃ¤Â³Ã¶Â¶Ã ÃÃ‹
             return "Output limit"
-        return "Wrong Answer"  # ÆäËûWA
+        return "Wrong Answer"  # Ã†Ã¤Ã‹Ã»WA
 
 
 class CPlusPlusInterpreter(Interpreter):
@@ -154,26 +145,26 @@ class PythonInterpreter(Interpreter):
 
     def check_dangerous_code(self, code):
         support_modules = [
-            're',  # ÕýÔò±í´ïÊ½
+            're',  # Ã•Ã½Ã”Ã²Â±Ã­Â´Ã¯ÃŠÂ½
             'sys',  # sys.stdin
-            'string',  # ×Ö·û´®´¦Àí
-            'scanf',  # ¸ñÊ½»¯ÊäÈë
-            'math',  # ÊýÑ§¿â
-            'cmath',  # ¸´ÊýÊýÑ§¿â
-            'decimal',  # ÊýÑ§¿â£¬¸¡µãÊý
-            'numbers',  # ³éÏó»ùÀà
-            'fractions',  # ÓÐÀíÊý
-            'random',  # Ëæ»úÊý
-            'itertools',  # µü´úº¯Êý
+            'string',  # Ã—Ã–Â·Ã»Â´Â®Â´Â¦Ã€Ã­
+            'scanf',  # Â¸Ã±ÃŠÂ½Â»Â¯ÃŠÃ¤ÃˆÃ«
+            'math',  # ÃŠÃ½Ã‘Â§Â¿Ã¢
+            'cmath',  # Â¸Â´ÃŠÃ½ÃŠÃ½Ã‘Â§Â¿Ã¢
+            'decimal',  # ÃŠÃ½Ã‘Â§Â¿Ã¢Â£Â¬Â¸Â¡ÂµÃ£ÃŠÃ½
+            'numbers',  # Â³Ã©ÃÃ³Â»Ã¹Ã€Ã 
+            'fractions',  # Ã“ÃÃ€Ã­ÃŠÃ½
+            'random',  # Ã‹Ã¦Â»ÃºÃŠÃ½
+            'itertools',  # ÂµÃ¼Â´ÃºÂºÂ¯ÃŠÃ½
             'functools',
             # Higher order functions and operations on callable objects
-            'operator',  # º¯Êý²Ù×÷
-            'readline',  # ¶ÁÎÄ¼þ
-            'json',  # ½âÎöjson
-            'array',  # Êý×é
-            'sets',  # ¼¯ºÏ
-            'queue',  # ¶ÓÁÐ
-            'types',  # ÅÐ¶ÏÀàÐÍ
+            'operator',  # ÂºÂ¯ÃŠÃ½Â²Ã™Ã—Ã·
+            'readline',  # Â¶ÃÃŽÃ„Â¼Ã¾
+            'json',  # Â½Ã¢ÃŽÃ¶json
+            'array',  # ÃŠÃ½Ã—Ã©
+            'sets',  # Â¼Â¯ÂºÃ
+            'queue',  # Â¶Ã“ÃÃ
+            'types',  # Ã…ÃÂ¶ÃÃ€Ã ÃÃ
         ]
         for line in code:
             if line.find('import') >= 0:
