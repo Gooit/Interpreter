@@ -11,3 +11,5 @@ venv/
 
 *.py[cod]
 Lo-runner/
+
+cases/
