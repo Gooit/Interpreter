@@ -54,7 +54,7 @@ class Interpreter(object):
             return True
 
         # dblock.acquire()
-        # update_compile_info(solution_id, err + out) # ±àÒëÊ§°Ü,¸üÐÂÌâÄ¿µÄ±àÒë´íÎóÐÅÏ¢
+        # update_compile_info(solution_id, err + out)
         # dblock.release()
         return False
 
@@ -114,16 +114,16 @@ class Interpreter(object):
 
         out_cases_path = os.path.join(self.cases_root_path, str(problem_id), output_file_index)
         with open(out_cases_path, 'r') as f:
-            out_case = f.read().replace('\r','').rstrip()  # É¾³ý\r,É¾³ýÐÐÄ©µÄ¿Õ¸ñºÍ»»ÐÐ
+            out_case = f.read().replace('\r','').rstrip()
         with open(self.user_out_path, 'r') as f:
             user_out = f.read().replace('\r', "").strip()
-        if out_case == user_out:  # ÍêÈ«ÏàÍ¬:AC
+        if out_case == user_out:
             return "Accepted"
-        if out_case.split() == user_out.split():  # ³ýÈ¥¿Õ¸ñ,tab,»»ÐÐÏàÍ¬:PE
+        if out_case.split() == user_out.split():
             return "Presentation Error"
-        if out_case in user_out:  # Êä³ö¶àÁË
+        if out_case in user_out:
             return "Output limit"
-        return "Wrong Answer"  # ÆäËûWA
+        return "Wrong Answer"
 
 
 class CPlusPlusInterpreter(Interpreter):
@@ -145,26 +145,26 @@ class PythonInterpreter(Interpreter):
 
     def check_dangerous_code(self, code):
         support_modules = [
-            're',  # ÕýÔò±í´ïÊ½
+            're',
             'sys',  # sys.stdin
-            'string',  # ×Ö·û´®´¦Àí
-            'scanf',  # ¸ñÊ½»¯ÊäÈë
-            'math',  # ÊýÑ§¿â
-            'cmath',  # ¸´ÊýÊýÑ§¿â
-            'decimal',  # ÊýÑ§¿â£¬¸¡µãÊý
-            'numbers',  # ³éÏó»ùÀà
-            'fractions',  # ÓÐÀíÊý
-            'random',  # Ëæ»úÊý
-            'itertools',  # µü´úº¯Êý
+            'string',
+            'scanf',
+            'math',
+            'cmath',
+            'decimal',
+            'numbers',
+            'fractions',
+            'random',
+            'itertools',
             'functools',
             # Higher order functions and operations on callable objects
-            'operator',  # º¯Êý²Ù×÷
-            'readline',  # ¶ÁÎÄ¼þ
-            'json',  # ½âÎöjson
-            'array',  # Êý×é
-            'sets',  # ¼¯ºÏ
-            'queue',  # ¶ÓÁÐ
-            'types',  # ÅÐ¶ÏÀàÐÍ
+            'operator',
+            'readline',
+            'json',
+            'array',
+            'sets',
+            'queue',
+            'types',
         ]
         for line in code:
             if line.find('import') >= 0:
