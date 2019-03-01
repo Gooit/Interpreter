@@ -29,8 +29,9 @@ class Interpreter(object):
     def __init__(self):
         conf = self._load_local_conf()
         self.compile_command = conf.get('compile_command') or ""
-        self.temp_answer_path = conf.get('temp_answer_path') or "temp_answer/"
-        self.temp_answer_filename = conf.get("temp_answer_filename") or ""
+        self.work_dir = conf.get('work_dir') or "work_dir/"
+        self.work_filename = conf.get("work_filename") or ""
+        self.user_out_path = "user_out/main.out"
         self.cases_root_path = conf.get("cases_root_path") or "cases/"
 
 
@@ -41,13 +42,13 @@ class Interpreter(object):
         return {}
 
     def _write_code(self, code):
-        temp_answer_filename = self.temp_answer_path + self.temp_answer_filename
-        with open(temp_answer_filename, 'wt') as f:
+        work_filename = self.work_dir + self.work_filename
+        with open(work_filename, 'wt') as f:
             f.write(code)
 
 
     def _compile(self):
-        p = subprocess.Popen(self.compile_command, shell=True, cwd=dir_work, stdout=subprocess.PIPE,
+        p = subprocess.Popen(self.compile_command, shell=True, cwd=self.work_dir, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         out, err = p.communicate()  # 获取编译错误信息
         if p.returncode == 0:  # 返回值为0,编译成功
@@ -94,7 +95,7 @@ class Interpreter(object):
 
     def _single_run_rule(self, input_file_index, path,
                          solution_id, problem_id, time_limited, mem_limited):
-        return True, "", ""
+        return True, ""
 
     def _run(self, *args, **kwargs):
         problem_id = kwargs['problem_id']
@@ -107,10 +108,10 @@ class Interpreter(object):
         status, msg, data = False, '', None
         start_time = time.time()
         for index in range(in_cases_num):
-            status, msg, user_answer = self._single_run_rule(input_file_index=index, path=in_cases_path, **kwargs)
-            if not status:
-                return status, msg, data
-            status, msg = self._judge(user_answer, index, **kwargs)
+            status = self._single_run_rule(input_file_index=index, path=in_cases_path, **kwargs)
+            if status['result']:
+                return status, msg
+            status, msg = self._judge(index, **kwargs)
             if not status:
                 return status, msg, None
         return status, msg, data
@@ -118,19 +119,18 @@ class Interpreter(object):
     def _check_dangerous_code(self, code):
         return True
 
-    def _judge(self, user_answer, output_file_index, problem_id, **kwargs):
+    def _judge(self, output_file_index, problem_id, **kwargs):
 
-        path = os.path.join(self.cases_root_path, str(problem_id), output_file_index)
-        with(path, 'w') as f:
-            out_case = f.read().replace(
-                '\r',
-                '').rstrip(
-            )  # 删除\r,删除行末的空格和换行
-        if out_case == user_answer:  # 完全相同:AC
+        out_cases_path = os.path.join(self.cases_root_path, str(problem_id), output_file_index)
+        with open(out_cases_path, 'r') as f:
+            out_case = f.read().replace('\r','').rstrip()  # 删除\r,删除行末的空格和换行
+        with open(self.user_out_path, 'r') as f:
+            user_out = f.read().replace('\r', "").strip()
+        if out_case == user_out:  # 完全相同:AC
             return "Accepted"
-        if out_case.split() == user_answer.split():  # 除去空格,tab,换行相同:PE
+        if out_case.split() == user_out.split():  # 除去空格,tab,换行相同:PE
             return "Presentation Error"
-        if out_case in user_answer:  # 输出多了
+        if out_case in user_out:  # 输出多了
             return "Output limit"
         return "Wrong Answer"  # 其他WA
 
@@ -145,6 +145,7 @@ class CPlusPlusInterpreter(Interpreter):
 class PythonInterpreter(Interpreter):
     def __init__(self):
         super().__init__()
+        self.user_out_path = "user_out/python.out"
         self.compile_command = "python3 -m py_compile main.py"
 
     def _initial(self, *args, **kwargs):
@@ -188,15 +189,16 @@ class PythonInterpreter(Interpreter):
 
     def _single_run_rule(self, input_file_index, path, solution_id,
                          problem_id, time_limited, mem_limited):
-        command = "python3 %s" % os.path.join("temp_answer", '__pycache__/main.cpython-33.pyc')
+        command = "python3 %s" % os.path.join(self.work_dir, '__pycache__/main.cpython-37.pyc')
         main_exe = shlex.split(command)
+        input_file_path = os.path.join(path, "%s.in" % input_file_index)
         try:
-            input_file_obj = open()
-            output_file_obj = open()
+            input_file = open(input_file_path, 'r')
+            temp_output_file = open('', 'w')
             cfg = {
                 'args': main_exe,
-                'fd_in': input_file_obj.fileno(),
-                'fd_out': output_file_obj.fileno(),
+                'fd_in': input_file.fileno(),
+                'fd_out': temp_output_file.fileno(),
                 'timelimit': time_limited,  # in MS
                 'memorylimit': mem_limited,  # in KB
             }
@@ -205,8 +207,8 @@ class PythonInterpreter(Interpreter):
         except:
             return False, "System Error", None
         finally:
-            input_file_obj.close()
-            output_file_obj.close()
+            input_file.close()
+            temp_output_file.close()
         return True, result
 
 
