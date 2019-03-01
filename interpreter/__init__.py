@@ -1,3 +1,4 @@
+# coding utf8
 import os
 import shlex
 import subprocess
@@ -26,10 +27,10 @@ class Interpreter(object):
     compile_lock = threading.Lock()
     def __init__(self):
         conf = self._load_local_conf()
-        self.compile_command = conf['compile_command'] or ""
-        self.temp_answer_path = conf['temp_answer_path'] or "temp_answer/"
-        self.temp_answer_filename = conf["temp_answer_filename"] or ""
-        self.cases_root_path = conf["cases_root_path"] or "cases/"
+        self.compile_command = conf.get('compile_command') or ""
+        self.temp_answer_path = conf.get('temp_answer_path') or "temp_answer/"
+        self.temp_answer_filename = conf.get("temp_answer_filename") or ""
+        self.cases_root_path = conf.get("cases_root_path") or "cases/"
 
 
     def _initial(self, *args, **kwargs):
@@ -86,7 +87,7 @@ class Interpreter(object):
         out_cases_path = os.path.join(self.cases_root_path, str(problem_id), 'out')
         out_cases_num = len(os.listdir(out_cases_path))
         if in_cases_num != out_cases_num:
-            print('warning', '输入输出不一致')
+            print('warning', 'cases error')
         status, msg, data = False, '', None
         start_time = time.time()
         for index in range(in_cases_num):
