@@ -64,7 +64,8 @@ class Interpreter(object):
     def _compile(self):
         p = subprocess.Popen(self.compile_command, shell=True, cwd=self.work_dir, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
-        out, err = p.communicate()  
+        out, err = p.communicate()
+        print(out, err)
         if p.returncode == 0: 
             return True
 
@@ -86,7 +87,10 @@ class Interpreter(object):
             return result
         with self.compile_lock:
             self._write_code(code)
-            self._compile()
+            status = self._compile()
+        if not status:
+            return {'status': status,
+                    'result': "Runtime Error"}
         return self._run(**kwargs)
 
     def low_level(self):
@@ -95,8 +99,8 @@ class Interpreter(object):
         except:
             pass
 
-    def _single_run_rule(self, input_file_index, path,
-                         solution_id, problem_id, time_limited, memory_limited):
+    def _single_run_rule(self, file_index, path,
+                         solution_id, problem_id, user_id, created_time, time_limited, memory_limited):
         return True, ""
 
     def _run(self, *args, **kwargs):
@@ -110,7 +114,7 @@ class Interpreter(object):
         max_cost_time = 0
         max_cost_memory = 0
         for index in range(100):
-            result = self._single_run_rule(input_file_index=index, path=in_cases_path, **kwargs)
+            result = self._single_run_rule(file_index=index, path=in_cases_path, **kwargs)
             if result['result'] != 0:
                 return {
                     'status': False,
@@ -136,15 +140,16 @@ class Interpreter(object):
     def _check_dangerous_code(self, code):
         return True
 
-    def _judge(self, output_file_index, problem_id, **kwargs):
-        out_cases_path = os.path.join(self.cases_root_path, str(problem_id), 'out/%s.out' % output_file_index)
+    def _judge(self, file_index, problem_id, solution_id, **kwargs):
+        out_cases_path = os.path.join(self.cases_root_path, str(problem_id), 'out/%s.out' % file_index)
         try:
             print(out_cases_path)
             with open(out_cases_path, 'r') as f:
                 out_case = f.read().replace('\r', '').rstrip()
         except:
             return True, 0
-        with open(self.user_out_path, 'r') as f:
+        user_out_path = os.path.join(self.user_out_path, "%s_%s.out" % (solution_id, file_index))
+        with open(user_out_path, 'r') as f:
             user_out = f.read().replace('\r', "").strip()
         if out_case == user_out:
             return True, 0
@@ -156,10 +161,41 @@ class Interpreter(object):
 
 
 class CPlusPlusInterpreter(Interpreter):
+    def __init__(self):
+        super().__init__()
+        self.user_out_path = "user_out/"
+        self.compile_command = "g++ -o main main.cpp"
+        self.work_filename = "main.cpp"
+
     def check_dangerous_code(solution_id, code):
         if code.find('system') >= 0:
             return False
         return True
+
+    def _single_run_rule(self, file_index, path,
+                         solution_id, problem_id, user_id, created_time, time_limited, memory_limited):
+        main_exe = [os.path.join(self.work_dir, 'main'), ]
+        input_file_path = os.path.join(path, "%s.in" % file_index)
+        input_file = open(input_file_path, 'r')
+        temp_output_path = os.path.join(self.user_out_path, "%s_%s.out" % (solution_id, file_index))
+        temp_output_file = open(temp_output_path, 'w')
+        try:
+            cfg = {
+                'args': main_exe,
+                'fd_in': input_file.fileno(),
+                'fd_out': temp_output_file.fileno(),
+                'timelimit': time_limited,  # in MS
+                'memorylimit':  memory_limited,  # in KB
+            }
+            self.low_level()
+            result = lorun.run(cfg)
+        except Exception as e:
+            print(e)
+            return {'result': -1}
+        finally:
+            input_file.close()
+            temp_output_file.close()
+        return result
 
 
 class PythonInterpreter(Interpreter):
@@ -209,14 +245,16 @@ class PythonInterpreter(Interpreter):
                     return False
         return True
 
-    def _single_run_rule(self, input_file_index, path, solution_id,
-                         problem_id, time_limited, memory_limited):
+    def _single_run_rule(self, file_index, path, solution_id,
+                         problem_id, user_id, created_time, time_limited, memory_limited):
         command = "python3 %s" % os.path.join(self.work_dir, '__pycache__/main.cpython-37.pyc')
         main_exe = shlex.split(command)
-        input_file_path = os.path.join(path, "%s.in" % input_file_index)
+        input_file_path = os.path.join(path, "%s.in" % file_index)
         input_file = open(input_file_path, 'r')
-        temp_output_file = open(self.user_out_path, 'w')
+        temp_output_path = os.path.join(self.user_out_path, "%s_%s.out" % (solution_id, file_index))
+        temp_output_file = open(temp_output_path, 'w')
         try:
+            import ipdb;ipdb.set_trace()
             cfg = {
                 'args': main_exe,
                 'fd_in': input_file.fileno(),
@@ -227,7 +265,7 @@ class PythonInterpreter(Interpreter):
             self.low_level()
             result = lorun.run(cfg)
         except Exception as e:
-            print(e)
+            print(e, 'sdfsdaf')
             return {'result': -1}
         finally:
             input_file.close()
@@ -236,7 +274,41 @@ class PythonInterpreter(Interpreter):
 
 
 class JavaInterpreter(Interpreter):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.user_out_path = "user_out/"
+        self.compile_command = "javac Main.java"
+        self.work_filename = "Main.java"
+
+    def check_dangerous_code(solution_id, code):
+        if code.find('system') >= 0:
+            return False
+        return True
+
+    def _single_run_rule(self, file_index, path,
+                         solution_id, problem_id, user_id, created_time, time_limited, memory_limited):
+        main_exe = shlex.split("java %s" % os.path.join(self.work_dir, "Main.class"))
+        input_file_path = os.path.join(path, "%s.in" % file_index)
+        input_file = open(input_file_path, 'r')
+        temp_output_path = os.path.join(self.user_out_path, "%s_%s.out" % (solution_id, file_index))
+        temp_output_file = open(temp_output_path, 'w')
+        try:
+            cfg = {
+                'args': main_exe,
+                'fd_in': input_file.fileno(),
+                'fd_out': temp_output_file.fileno(),
+                'timelimit': time_limited,  # in MS
+                'memorylimit':  memory_limited,  # in KB
+            }
+            self.low_level()
+            result = lorun.run(cfg)
+        except Exception as e:
+            print(e)
+            return {'result': -1}
+        finally:
+            input_file.close()
+            temp_output_file.close()
+        return result
 
 
 class GoInterpreter(Interpreter):

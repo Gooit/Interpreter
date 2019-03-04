@@ -13,3 +13,6 @@ venv/
 Lo-runner/
 
 cases/
+
+user_out/
+work_dir/

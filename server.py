@@ -19,6 +19,8 @@ interpreter_dict = {
 @app.route('/<string:language>/', methods=['POST'])
 def execute(language):
     data = request.get_json()
+    print(data)
+    # import ipdb;ipdb.set_trace()
     interpreter = interpreter_dict.get(language)
     response = interpreter(**data)
     return json.dumps(response)
